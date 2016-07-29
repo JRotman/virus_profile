@@ -1,0 +1,5 @@
+July 29, 2016: 
+	- Profiling now removes any case where 70% or more of starting points 
+	  were part of "skyscrapers" (large spike of starting points all at the
+	  exact same index
+	- Coverage plots now fillin space between curve and axis 
