@@ -6,6 +6,7 @@ import sys
 import random
 import csv
 import os
+import pandas
 import numpy
 import matplotlib
 # matplotlib.use('Agg')  # Must be before importing matplotlib.pyplot or pylab!
@@ -22,6 +23,7 @@ ap.add_argument('readRength', help='')
 
 args = ap.parse_args()
 
+pathway = "Test/"
 
 rLength = int(args.readRength)
 
@@ -91,9 +93,9 @@ genomesList = list(set(genomesList))
 # coordinates of the covered region
 for g in genomesList:
 
-        k += 1
-        genomeL[g] = []
-        genomeR[g] = []
+    k += 1
+    genomeL[g] = []
+    genomeR[g] = []
 
 
 # dict = {}     ???????
@@ -116,31 +118,44 @@ with open(args.virusMegablastSample, 'r') as f:
 # get LEFT and RIGHT coordinates of the covered region
 
 dict2 = {}
-single_map_dict = {}
+fulldict = {}
 for g in genomesList:
+    fulldict[g] = []
     dict2[g] = []
-    single_map_dict[g] = []
 
 nMultimapped = 0
 random.seed()
 for key, value in dict.iteritems():
     if len(value) > 1:
-        gList = set()
         for v in value:
-            if v[1] not in gList:
-                dict2[v[1]].append(v)
+            fulldict[v[1]].append(v)
 
-        # if a read is multimapped, randomly choose where to place it
-        randIndex = random.randint(0, len(value) - 1)
+        nMultimapped += 1
+
+    else:
+        fulldict[value[0][1]].append(value[0])
+
+print "Number of multimapped reads: ", nMultimapped
+
+for key, value in dict.iteritems():
+    if len(value) > 1:
+        mostReads = 0
+        selIndices = []
+        for v in range(len(value)):
+            if len(fulldict[value[v][1]]) > mostReads:
+                mostReads = len(fulldict[value[v][1]])
+                selIndices = [v]
+            elif len(fulldict[value[v][1]]) == mostReads:
+                selIndices.append(v)
+
+            # if a read is multimapped, randomly choose where to place it
+        randIndex = random.randint(0, len(selIndices) - 1)
         dict2[value[randIndex][1]].append(value[randIndex])
 
         nMultimapped += 1
 
     else:
         dict2[value[0][1]].append(value[0])
-
-print "Number of multimapped reads: ", nMultimapped
-
 checkList = set()
 mMap = 0
 
@@ -181,8 +196,6 @@ for key, value in dict2.items():
 
 figure_number = 1
 
-pathway = "Test/"
-
 # iterate through each virus
 for key, value in dict2.items():
     startsFull = []
@@ -191,7 +204,6 @@ for key, value in dict2.items():
     endIdx = []
     spPlots = []
     cPlots = []
-    accept = 0
     overall_accept = 0
 
     # check that there are at least NR (20) reads
@@ -281,10 +293,12 @@ for key, value in dict2.items():
             index = 0
 
             for pl in range(len(spPlots)):
-                print key
+                accept = 0
+                print key + str(pl)
 
                 if len(cPlots[pl]) >= COVERAGE_MIN:
                     print "Length Covered: " + str(len(cPlots[pl]))
+                    print cPlots[pl]
                     spDiff = []
                     currIdx = 0
                     lastIdx = 0
