@@ -10,3 +10,6 @@ August 2, 2016:
 	- Decision on where to place read is based on abundance of reads in
 	  genome
 
+August 3, 2016:
+	- Code now bases chosen read on abundance as well as Identity match
+

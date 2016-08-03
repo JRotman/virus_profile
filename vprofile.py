@@ -9,7 +9,7 @@ import os
 import pandas
 import numpy
 import matplotlib
-# matplotlib.use('Agg')  # Must be before importing matplotlib.pyplot or pylab!
+matplotlib.use('Agg')  # Must be before importing matplotlib.pyplot or pylab!
 import matplotlib.pyplot as plt
 
 
@@ -45,7 +45,7 @@ out = prefix + "_filtered.csv"
 # print "Save to",out
 
 
-dict = {}
+read_dict = {}
 genomesList = []
 genomesList2 = set()
 genomeReads = {}
@@ -103,7 +103,7 @@ for g in genomesList:
 
 for g in genomesList:
     for r in genomeReads[g]:
-        dict[r] = []
+        read_dict[r] = []
 
 
 # make dict for each read
@@ -112,11 +112,12 @@ with open(args.virusMegablastSample, 'r') as f:
     for line in reader:
         read = line[0]
         genome = line[1]
-        dict[read].append(line)
+        read_dict[read].append(line)
 
 
 # get LEFT and RIGHT coordinates of the covered region
 
+# identity = []
 dict2 = {}
 fulldict = {}
 for g in genomesList:
@@ -125,8 +126,9 @@ for g in genomesList:
 
 nMultimapped = 0
 random.seed()
-for key, value in dict.iteritems():
+for key, value in read_dict.iteritems():
     if len(value) > 1:
+#        identity.append([])
         for v in value:
             fulldict[v[1]].append(v)
 
@@ -137,25 +139,55 @@ for key, value in dict.iteritems():
 
 print "Number of multimapped reads: ", nMultimapped
 
-for key, value in dict.iteritems():
+idIndex = 0
+for key, value in read_dict.iteritems():
     if len(value) > 1:
         mostReads = 0
         selIndices = []
+        selIdx = -1
         for v in range(len(value)):
+#            identity[idIndex].append(fulldict[value[v][2]])
             if len(fulldict[value[v][1]]) > mostReads:
                 mostReads = len(fulldict[value[v][1]])
                 selIndices = [v]
+                selIdx = v
             elif len(fulldict[value[v][1]]) == mostReads:
                 selIndices.append(v)
+                if float(value[v][2]) > float(value[selIdx][2]):
+                    if int(value[v][3]) - int(value[selIdx][3]) >= 15:
+                        selIdx = v
+                        selIndices = [v]
+                elif float(value[selIdx][2]) > float(value[v][2]):
+                    if int(value[selIdx][3]) - int(value[v][3]) >= 15:
+                        selIndices = [selIdx]
+                else:
+                    if int(value[selIdx][3]) - int(value[v][3]) >= 25:
+                        selIndices = [selIdx]
+                    elif int(value[v][3]) - int(value[selIdx][3]) >= 15:
+                        selIdx = v
+                        selIndices = [v]
 
             # if a read is multimapped, randomly choose where to place it
         randIndex = random.randint(0, len(selIndices) - 1)
         dict2[value[randIndex][1]].append(value[randIndex])
 
-        nMultimapped += 1
+#        idIndex += 1
 
     else:
         dict2[value[0][1]].append(value[0])
+
+# fig = plt.figure(1, figsize=(20.48, 10.24))
+# ax = fig.add_subplot(111)
+# ax.set_title('Identity % of Multimapped Reads', fontweight='bold')
+# ax.set_xlabel('Read')
+# ax.set_ylabel('Identity %')
+# for id in range(len(identity)):
+#    xAxis = numpy.full(len(identity[id]), id)
+#    ax.plot(xAxis, identity[id], "bo")
+# plt.savefig(pathway + "IdentityPlot.png")
+# plt.close(1)
+
+
 checkList = set()
 mMap = 0
 
@@ -194,7 +226,7 @@ for key, value in dict2.items():
         dictGenome[key][3] = [0]*(dictGenome[key][2]+1)
         dictGenome[key][4] = [0]*(dictGenome[key][2]+1)
 
-figure_number = 1
+figure_number = 2
 
 # iterate through each virus
 for key, value in dict2.items():
@@ -298,7 +330,6 @@ for key, value in dict2.items():
 
                 if len(cPlots[pl]) >= COVERAGE_MIN:
                     print "Length Covered: " + str(len(cPlots[pl]))
-                    print cPlots[pl]
                     spDiff = []
                     currIdx = 0
                     lastIdx = 0
@@ -342,7 +373,7 @@ for key, value in dict2.items():
                 ax.fill_between(startIdx[pl], 0, cPlots[pl])
 
                 if accept == 1:
-                    plt.savefig(pathway + "smallPlots/%s_%d.png" % (key, pl))
+                    plt.savefig(pathway + "smallPlots/%s_%s_%d.png" % (prefix, key, pl))
                     # print cPlots[pl]
                     # print spPlots[pl]
 #                else:
@@ -368,11 +399,11 @@ for key, value in dict2.items():
     ax.set_title('Coverage', fontweight='bold')
     ax.set_xlabel('genome index')
     ax.set_ylabel('number of covering reads')
-    ax.plot(dictGenome[key][4])
+#    ax.plot(dictGenome[key][4])
     ax.fill_between(range(len(dictGenome[key][4])), 0, dictGenome[key][4])
 
     if overall_accept == 1:
-        plt.savefig(pathway + "largePlots/%s.png" % key)
+        plt.savefig(pathway + "largePlots/%s_%s.png" % (prefix, key))
 #    else:
 #        plt.savefig(pathway + "largePlots/%s.png" % key)
     plt.close(figure_number)
