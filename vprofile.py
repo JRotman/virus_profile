@@ -2,20 +2,15 @@
 # 1) make sure the same read is not counted multiple times to the same genome
 
 
-import sys
 import random
 import csv
 import os
-import pandas
-import numpy
 import matplotlib
 matplotlib.use('Agg')  # Must be before importing matplotlib.pyplot or pylab!
 import matplotlib.pyplot as plt
 
 
 import argparse
-from collections import Counter
-
 
 ap = argparse.ArgumentParser()
 ap.add_argument('virusMegablastSample', help='virusMegablastSample')
@@ -23,7 +18,7 @@ ap.add_argument('readRength', help='')
 
 args = ap.parse_args()
 
-pathway = "Test/"
+pathway = ""
 
 rLength = int(args.readRength)
 
@@ -176,18 +171,6 @@ for key, value in read_dict.iteritems():
     else:
         dict2[value[0][1]].append(value[0])
 
-# fig = plt.figure(1, figsize=(20.48, 10.24))
-# ax = fig.add_subplot(111)
-# ax.set_title('Identity % of Multimapped Reads', fontweight='bold')
-# ax.set_xlabel('Read')
-# ax.set_ylabel('Identity %')
-# for id in range(len(identity)):
-#    xAxis = numpy.full(len(identity[id]), id)
-#    ax.plot(xAxis, identity[id], "bo")
-# plt.savefig(pathway + "IdentityPlot.png")
-# plt.close(1)
-
-
 checkList = set()
 mMap = 0
 
@@ -199,7 +182,7 @@ for key, value in dict2.items():
 # ['HWI-ST1148:179:C4BAKACXX:5:1101:17968:1893/1', 'gi|752901102|ref|NC_026427.1|',
 #  '95.65', '92', '4', '0', '7', '98', '798', '889', '2e-35', ' 148']
 
-for key, value in dict2.items():
+for key, value in fulldict.items():
 
     lGlobal = []
     rGlobal = []
@@ -226,10 +209,10 @@ for key, value in dict2.items():
         dictGenome[key][3] = [0]*(dictGenome[key][2]+1)
         dictGenome[key][4] = [0]*(dictGenome[key][2]+1)
 
-figure_number = 2
+figure_number = 1
 
 # iterate through each virus
-for key, value in dict2.items():
+for key, value in fulldict.items():
     startsFull = []
     endsFull = []
     startIdx = []
@@ -370,14 +353,15 @@ for key, value in dict2.items():
                 ax.set_title('Coverage', fontweight='bold')
                 ax.set_xlabel('genome index')
                 ax.set_ylabel('number of covering reads')
-                ax.fill_between(startIdx[pl], 0, cPlots[pl])
+                ax.plot(startIdx[pl], cPlots[pl], color='blue')
+#                ax.fill_between(startIdx[pl], 0, cPlots[pl], facecolor='blue')
 
                 if accept == 1:
-                    plt.savefig(pathway + "smallPlots/%s_%s_%d.png" % (prefix, key, pl))
+                    plt.savefig(pathway + "%s_%s_%d.png" % (prefix, key, pl))
                     # print cPlots[pl]
                     # print spPlots[pl]
 #                else:
-#                    plt.savefig(pathway + "smallPlots/%s_%d.png" % (key, pl))
+#                    plt.savefig(pathway + "%s_%d.png" % (key, pl))
                 plt.close(figure_number)
                 figure_number += 1
 
@@ -399,11 +383,11 @@ for key, value in dict2.items():
     ax.set_title('Coverage', fontweight='bold')
     ax.set_xlabel('genome index')
     ax.set_ylabel('number of covering reads')
-#    ax.plot(dictGenome[key][4])
-    ax.fill_between(range(len(dictGenome[key][4])), 0, dictGenome[key][4])
+    ax.plot(range(len(dictGenome[key][4])), dictGenome[key][4], color='blue')
+    ax.fill_between(range(len(dictGenome[key][4])), 0, dictGenome[key][4], facecolor='blue')
 
     if overall_accept == 1:
-        plt.savefig(pathway + "largePlots/%s_%s.png" % (prefix, key))
+        plt.savefig(pathway + "%s_%s.png" % (prefix, key))
 #    else:
 #        plt.savefig(pathway + "largePlots/%s.png" % key)
     plt.close(figure_number)
