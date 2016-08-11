@@ -8,6 +8,7 @@ Access the virtual environment using the command
 vprofile.py takes in 2 arguments:
   1. The csv file with mapped reads (str)
   2. the read length (int)
+
 To run the code you can call it like this:
 
 `python vprofile.py rop_output_file.csv 100`
