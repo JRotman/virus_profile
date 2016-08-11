@@ -5,4 +5,9 @@ Access the virtual environment using the command
 
 `source venv/bin/activate`
 
-Then you can run the python code as usual
+vprofile.py takes in 2 arguments:
+  1. The csv file with mapped reads (str)
+  2. the read length (int)
+To run the code you can call it like this:
+
+`python vprofile.py rop_output_file.csv 100`
