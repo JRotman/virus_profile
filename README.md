@@ -11,4 +11,4 @@ vprofile.py takes in 2 arguments:
 
 To run the code you can call it like this:
 
-`python vprofile.py <em>rop_output_file</em>.csv 100`
+`python vprofile.py rop_output_file.csv 100`
