@@ -16,3 +16,6 @@ August 3, 2016:
 August 9, 2016:
 	- Removed extra import dependencies and experimental code that was commented out
 
+August 11, 2016:
+	- Included virtual environment with Anaconda (which includes matplotlib)
+
