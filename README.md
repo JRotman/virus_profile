@@ -12,3 +12,7 @@ vprofile.py takes in 2 arguments:
 To run the code you can call it like this:
 
 `python vprofile.py rop_output_file.csv 100`
+
+After you are done with the virtual environment, you can close the environment with the command
+
+`deactivate`
