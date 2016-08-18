@@ -15,6 +15,7 @@ ap = argparse.ArgumentParser()
 ap.add_argument('virusMegablastSample', help='virusMegablastSample')
 ap.add_argument('readRength', help='')
 ap.add_argument("-d", "--database", type=str, help='Include a specific database to help filter')
+ap.add_argument("-t", "--table", action="store_true", help='Output the coverage to a text table')
 
 args = ap.parse_args()
 
@@ -229,6 +230,12 @@ for key, value in fulldict.items():
 
 figure_number = 1
 
+newfile = prefix + ".txt"
+if args.table:
+    tb = open(newfile, "w")
+    tb.write(prefix + "\n")
+    tb.close()
+
 # iterate through each virus
 for key, value in fulldict.items():
     if (args.database and key in dbDict) or not args.database:
@@ -354,6 +361,14 @@ for key, value in fulldict.items():
                             if len(cPlots[pl]) > maxC:
                                 maxC = len(cPlots[pl])
                                 index = pl
+                                if args.table:
+                                    tb = open(newfile, "a")
+                                    appendText = key + ", " + str(dictGenome[key][0]) + ", " + str(startIdx[pl][0]) + \
+                                                 ", " + str(startIdx[pl][len(startIdx[pl])-1])
+                                    tb.write(appendText)
+                                    tb.write("\n")
+                                    tb.close()
+
 
                     fig = plt.figure(figure_number, figsize=(20.48, 10.24))
 
@@ -379,8 +394,8 @@ for key, value in fulldict.items():
                         plt.savefig(pathway + "smallPlots/%s_%s_%d.png" % (prefix, key, pl))
                         # print cPlots[pl]
                         # print spPlots[pl]
-                    else:
-                        plt.savefig(pathway + "smallPlots/%s_%d.png" % (key, pl))
+ #                   else:
+ #                       plt.savefig(pathway + "smallPlots/%s_%d.png" % (key, pl))
                     plt.close(figure_number)
                     figure_number += 1
 

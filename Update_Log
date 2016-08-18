@@ -21,3 +21,7 @@ August 11, 2016:
 
 August 17, 2016:
 	- Added optional argument to run just chromosomes on eukaryotes (disregards eupathdb contigs)
+
+August 18, 2016:
+	- Added optional argument that sends info on all accepted coverages to a text file
+
