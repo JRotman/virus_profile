@@ -17,7 +17,7 @@ August 9, 2016:
 	- Removed extra import dependencies and experimental code that was commented out
 
 August 11, 2016:
-	- Included virtual environment with Anaconda (which includes matplotlib)
+	- Included virtual environment with matplotlib already installed
 
 August 17, 2016:
 	- Added optional argument to run just chromosomes on eukaryotes (disregards eupathdb contigs)
