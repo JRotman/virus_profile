@@ -9,16 +9,16 @@ import matplotlib
 matplotlib.use('Agg')  # Must be before importing matplotlib.pyplot or pylab!
 import matplotlib.pyplot as plt
 
-
 import argparse
 
 ap = argparse.ArgumentParser()
 ap.add_argument('virusMegablastSample', help='virusMegablastSample')
 ap.add_argument('readRength', help='')
+ap.add_argument("-d", "--database", type=str, help='Include a specific database to help filter')
 
 args = ap.parse_args()
 
-pathway = ""
+pathway = "TestPlots/"
 
 rLength = int(args.readRength)
 
@@ -40,6 +40,7 @@ out = prefix + "_filtered.csv"
 # print "Save to",out
 
 
+dbDict = {}
 read_dict = {}
 genomesList = []
 genomesList2 = set()
@@ -61,6 +62,11 @@ k = 0
 # HWI-ST1148:179:C4BAKACXX:5:1101:11944:1949/1    gi|8486122|ref|NC_002016.1|
 # 94.68   94      5       0     7   100     750     843     7e-35    147
 
+if args.database:
+    with open(args.database, 'r') as db:
+        for line in db:
+            lineList = line.split(" | ")
+            dbDict[lineList[0]] = lineList[1]
 
 # get list with genomes
 check = 1
@@ -171,6 +177,18 @@ for key, value in read_dict.iteritems():
     else:
         dict2[value[0][1]].append(value[0])
 
+# fig = plt.figure(1, figsize=(20.48, 10.24))
+# ax = fig.add_subplot(111)
+# ax.set_title('Identity % of Multimapped Reads', fontweight='bold')
+# ax.set_xlabel('Read')
+# ax.set_ylabel('Identity %')
+# for id in range(len(identity)):
+#    xAxis = numpy.full(len(identity[id]), id)
+#    ax.plot(xAxis, identity[id], "bo")
+# plt.savefig(pathway + "IdentityPlot.png")
+# plt.close(1)
+
+
 checkList = set()
 mMap = 0
 
@@ -183,212 +201,220 @@ for key, value in dict2.items():
 #  '95.65', '92', '4', '0', '7', '98', '798', '889', '2e-35', ' 148']
 
 for key, value in fulldict.items():
+    if (args.database and key in dbDict) or not args.database:
+        lGlobal = []
+        rGlobal = []
 
-    lGlobal = []
-    rGlobal = []
+        if len(value) > NR:
 
-    if len(value) > NR:
+            for v in value:
 
-        for v in value:
+                l = int(v[8])
+                r = int(v[9])
 
-            l = int(v[8])
-            r = int(v[9])
+                if l > r:
+                    l, r = r, l
 
-            if l > r:
-                l, r = r, l
+                lGlobal.append(int(l))
+                rGlobal.append(int(r))
 
-            lGlobal.append(int(l))
-            rGlobal.append(int(r))
-
-        # dictGenome:
-        # [ length, leftmost point, rightmost point, starting point array, coverage array, key ]
-        dictGenome[key][0] = len(value)
-        dictGenome[key][5] = line[1]
-        dictGenome[key][1] = min(lGlobal)
-        dictGenome[key][2] = max(rGlobal)
-        dictGenome[key][3] = [0]*(dictGenome[key][2]+1)
-        dictGenome[key][4] = [0]*(dictGenome[key][2]+1)
+            # dictGenome:
+            # [ length, leftmost point, rightmost point, starting point array, coverage array, key ]
+            dictGenome[key][0] = len(value)
+            dictGenome[key][5] = line[1]
+            dictGenome[key][1] = min(lGlobal)
+            dictGenome[key][2] = max(rGlobal)
+            dictGenome[key][3] = [0] * (dictGenome[key][2] + 1)
+            dictGenome[key][4] = [0] * (dictGenome[key][2] + 1)
 
 figure_number = 1
 
 # iterate through each virus
 for key, value in fulldict.items():
-    startsFull = []
-    endsFull = []
-    startIdx = []
-    endIdx = []
-    spPlots = []
-    cPlots = []
-    overall_accept = 0
+    if (args.database and key in dbDict) or not args.database:
+        startsFull = []
+        endsFull = []
+        startIdx = []
+        endIdx = []
+        spPlots = []
+        cPlots = []
+        overall_accept = 0
 
-    # check that there are at least NR (20) reads
-    if len(value) > NR:
-        print str(key) + " : " + str(len(value))
-        for v in value:
-            l = int(v[8])
-            r = int(v[9])
-            if l > r:
-                l, r = r, l
+        # check that there are at least NR (20) reads
+        if len(value) > NR:
+            print str(key) + " : " + str(len(value))
+            for v in value:
+                l = int(v[8])
+                r = int(v[9])
+                if l > r:
+                    l, r = r, l
 
-            dictGenome[key][3][l] += 1
+                dictGenome[key][3][l] += 1
 
-            for i in range(l, r+1):
-                dictGenome[key][4][i] += 1
+                for i in range(l, r+1):
+                    dictGenome[key][4][i] += 1
 
-        skyscraperReads = 0
-        totalReads = 0
-        for m in dictGenome[key][3]:
-            if m > 1000:
-                skyscraperReads += m
-            totalReads += m
+            skyscraperReads = 0
+            totalReads = 0
+            for m in dictGenome[key][3]:
+                if m > 1000:
+                    skyscraperReads += m
+                totalReads += m
 
-        print "Skyscraper Reads: " + str(skyscraperReads)
-        print "Total Reads: " + str(totalReads)
-        ratio = float(skyscraperReads) / float(totalReads)
-        print ratio
+            print "Skyscraper Reads: " + str(skyscraperReads)
+            print "Total Reads: " + str(totalReads)
+            ratio = float(skyscraperReads) / float(totalReads)
+            print ratio
 
-        if ratio < 0.7:
-            startIndex = 0
-            endIndex = 0
-            zeroCounter = 0
-            lastEnd = 0
-            starts = []
-            ends = []
-            first = 0
-            for n in range(len(dictGenome[key][4])):
-                if dictGenome[key][4][n] == 0:
-                    if startIndex > lastEnd and zeroCounter > 0:
-                        sIdx = []
-                        eIdx = []
-                        if first == 0:
-                            spPlots.append(dictGenome[key][3][startIndex - 1:endIndex + 1])
-                            cPlots.append(dictGenome[key][4][startIndex - 1:endIndex + 1])
-                            for x in range(startIndex - 1, endIndex + 1):
-                                sIdx.append(x)
-                            first = 1
+            if ratio < 0.7:
+                startIndex = 0
+                endIndex = 0
+                zeroCounter = 0
+                lastEnd = 0
+                starts = []
+                ends = []
+                first = 0
+                for n in range(len(dictGenome[key][4])):
+                    if dictGenome[key][4][n] == 0:
+                        if startIndex > lastEnd and zeroCounter > 0:
+                            sIdx = []
+                            eIdx = []
+                            if first == 0:
+                                spPlots.append(dictGenome[key][3][startIndex - 1:endIndex + 1])
+                                cPlots.append(dictGenome[key][4][startIndex - 1:endIndex + 1])
+                                for x in range(startIndex - 1, endIndex + 1):
+                                    sIdx.append(x)
+                                first = 1
+                            else:
+                                spPlots.append(dictGenome[key][3][startIndex:endIndex + 1])
+                                cPlots.append(dictGenome[key][4][startIndex:endIndex + 1])
+                                for x in range(startIndex, endIndex + 1):
+                                    sIdx.append(x)
+
+                            startIdx.append(sIdx)
+                            starts.append(startIndex)
+                            ends.append(endIndex + 1)
+                            startsFull.append(starts)
+                            endsFull.append(ends)
+                            lastEnd = endIndex
+                            startIndex = 0
+                            zeroCounter = 0
                         else:
-                            spPlots.append(dictGenome[key][3][startIndex:endIndex + 1])
-                            cPlots.append(dictGenome[key][4][startIndex:endIndex + 1])
-                            for x in range(startIndex, endIndex + 1):
-                                sIdx.append(x)
-
-                        startIdx.append(sIdx)
-                        starts.append(startIndex)
-                        ends.append(endIndex + 1)
-                        startsFull.append(starts)
-                        endsFull.append(ends)
-                        lastEnd = endIndex
-                        startIndex = 0
-                        zeroCounter = 0
+                            zeroCounter += 1
+                    elif startIndex == 0 and endIndex != 0:
+                        startIndex = n
+                        endIndex = n
                     else:
-                        zeroCounter += 1
-                elif startIndex == 0 and endIndex != 0:
-                    startIndex = n
-                    endIndex = n
-                else:
-                    endIndex = n
+                        endIndex = n
 
-            if dictGenome[key][4][n] != 0:
-                sIdx = []
-                eIdx = []
-                if first == 0:
-                    spPlots.append(dictGenome[key][3][startIndex - 1:endIndex + 1])
-                    cPlots.append(dictGenome[key][4][startIndex - 1:endIndex + 1])
-                    for x in range(startIndex - 1, endIndex + 1):
-                        sIdx.append(x)
-                    first = 1
-                else:
-                    spPlots.append(dictGenome[key][3][startIndex:endIndex + 1])
-                    cPlots.append(dictGenome[key][4][startIndex:endIndex + 1])
-                    for x in range(startIndex, endIndex + 1):
-                        sIdx.append(x)
-                startIdx.append(sIdx)
+                if dictGenome[key][4][n] != 0:
+                    sIdx = []
+                    eIdx = []
+                    if first == 0:
+                        spPlots.append(dictGenome[key][3][startIndex - 1:endIndex + 1])
+                        cPlots.append(dictGenome[key][4][startIndex - 1:endIndex + 1])
+                        for x in range(startIndex - 1, endIndex + 1):
+                            sIdx.append(x)
+                        first = 1
+                    else:
+                        spPlots.append(dictGenome[key][3][startIndex:endIndex + 1])
+                        cPlots.append(dictGenome[key][4][startIndex:endIndex + 1])
+                        for x in range(startIndex, endIndex + 1):
+                            sIdx.append(x)
+                    startIdx.append(sIdx)
 
-            maxC = 0
-            index = 0
+                maxC = 0
+                index = 0
 
-            for pl in range(len(spPlots)):
-                accept = 0
-                print key + str(pl)
+                for pl in range(len(spPlots)):
+                    accept = 0
+                    print key + str(pl)
 
-                if len(cPlots[pl]) >= COVERAGE_MIN:
-                    print "Length Covered: " + str(len(cPlots[pl]))
-                    spDiff = []
-                    currIdx = 0
-                    lastIdx = 0
-                    for x in range(len(spPlots[pl])):
-                        if spPlots[pl][lastIdx] == 0:
-                            if spPlots[pl][x] > 0:
-                                lastIdx = x
-                        elif spPlots[pl][x] > 0:
-                            # print "difference: " + str(x) + str(lastIdx)
-                            if lastIdx != x:
-                                spDiff.append(startIdx[pl][x] - startIdx[pl][lastIdx])
-                                lastIdx = x
-                    spAverage = sum(spDiff) / len(spDiff)
-                    # print spDiff
-                    print "Average SP Difference: " + str(spAverage)
-                    if spAverage <= SP_DIFF_MAX:
-                        print "ACCEPTED"
-                        accept = 1
-                        overall_accept = 1
-                        if len(cPlots[pl]) > maxC:
-                            maxC = len(cPlots[pl])
-                            index = pl
+                    if len(cPlots[pl]) >= COVERAGE_MIN:
+                        print "Length Covered: " + str(len(cPlots[pl]))
+                        spDiff = []
+                        currIdx = 0
+                        lastIdx = 0
+                        for x in range(len(spPlots[pl])):
+                            if spPlots[pl][lastIdx] == 0:
+                                if spPlots[pl][x] > 0:
+                                    lastIdx = x
+                            elif spPlots[pl][x] > 0:
+                                # print "difference: " + str(x) + str(lastIdx)
+                                if lastIdx != x:
+                                    spDiff.append(startIdx[pl][x] - startIdx[pl][lastIdx])
+                                    lastIdx = x
+                        spAverage = sum(spDiff) / len(spDiff)
+                        # print spDiff
+                        print "Average SP Difference: " + str(spAverage)
+                        if spAverage <= SP_DIFF_MAX:
+                            print "ACCEPTED"
+                            accept = 1
+                            overall_accept = 1
+                            if len(cPlots[pl]) > maxC:
+                                maxC = len(cPlots[pl])
+                                index = pl
 
-                fig = plt.figure(figure_number, figsize=(20.48, 10.24))
+                    fig = plt.figure(figure_number, figsize=(20.48, 10.24))
 
-                if accept == 1:
-                    fig.suptitle('%s_ACCEPT' % key, fontsize=16, fontweight='bold')
-                else:
-                    fig.suptitle('%s_REJECT' % key, fontsize=16, fontweight='bold')
+                    if accept == 1:
+                        fig.suptitle('%s_ACCEPT' % key, fontsize=16, fontweight='bold')
+                    else:
+                        fig.suptitle('%s_REJECT' % key, fontsize=16, fontweight='bold')
 
-                ax = fig.add_subplot(211)
-                ax.set_title('Starting Point Distribution', fontweight='bold')
-                ax.set_xlabel('genome index')
-                ax.set_ylabel('number of starting points')
-                ax.plot(startIdx[pl], spPlots[pl])
+                    ax = fig.add_subplot(211)
+                    ax.set_title('Starting Point Distribution', fontweight='bold')
+                    ax.set_xlabel('genome index')
+                    ax.set_ylabel('number of starting points')
+                    ax.plot(startIdx[pl], spPlots[pl])
 
-                ax = fig.add_subplot(212)
-                ax.set_title('Coverage', fontweight='bold')
-                ax.set_xlabel('genome index')
-                ax.set_ylabel('number of covering reads')
-                ax.plot(startIdx[pl], cPlots[pl], color='blue')
-#                ax.fill_between(startIdx[pl], 0, cPlots[pl], facecolor='blue')
+                    ax = fig.add_subplot(212)
+                    ax.set_title('Coverage', fontweight='bold')
+                    ax.set_xlabel('genome index')
+                    ax.set_ylabel('number of covering reads')
+                    ax.plot(startIdx[pl], cPlots[pl], color='blue')
+    #                ax.fill_between(startIdx[pl], 0, cPlots[pl], facecolor='blue')
 
-                if accept == 1:
-                    plt.savefig(pathway + "%s_%s_%d.png" % (prefix, key, pl))
-                    # print cPlots[pl]
-                    # print spPlots[pl]
-#                else:
-#                    plt.savefig(pathway + "%s_%d.png" % (key, pl))
-                plt.close(figure_number)
-                figure_number += 1
+                    if accept == 1:
+                        plt.savefig(pathway + "smallPlots/%s_%s_%d.png" % (prefix, key, pl))
+                        # print cPlots[pl]
+                        # print spPlots[pl]
+                    else:
+                        plt.savefig(pathway + "smallPlots/%s_%d.png" % (key, pl))
+                    plt.close(figure_number)
+                    figure_number += 1
 
-    fig = plt.figure(figure_number, figsize=(20.48, 10.24))
+        fig = plt.figure(figure_number, figsize=(20.48, 10.24))
+        if args.database:
+            if overall_accept == 1:
+                fig.suptitle('%s_%s_ACCEPT' % (dbDict[key], key), fontsize=16, fontweight='bold')
+            else:
+                fig.suptitle('%s_%s_REJECT' % (dbDict[key], key), fontsize=16, fontweight='bold')
+        else:
+            if overall_accept == 1:
+                fig.suptitle('%s_ACCEPT' % key, fontsize=16, fontweight='bold')
+            else:
+                fig.suptitle('%s_REJECT' % key, fontsize=16, fontweight='bold')
 
-    if overall_accept == 1:
-        fig.suptitle('%s_ACCEPT' % key, fontsize=16, fontweight='bold')
-    else:
-        fig.suptitle('%s_REJECT' % key, fontsize=16, fontweight='bold')
+        ax = fig.add_subplot(211)
+        ax.set_title('Starting Point Distribution', fontweight='bold')
+        ax.set_xlabel('genome index')
+        ax.set_ylabel('number of starting points')
+        ax.plot(dictGenome[key][3])
+        #ax.fill_between()
 
-    ax = fig.add_subplot(211)
-    ax.set_title('Starting Point Distribution', fontweight='bold')
-    ax.set_xlabel('genome index')
-    ax.set_ylabel('number of starting points')
-    ax.plot(dictGenome[key][3])
-    #ax.fill_between()
+        ax = fig.add_subplot(212)
+        ax.set_title('Coverage', fontweight='bold')
+        ax.set_xlabel('genome index')
+        ax.set_ylabel('number of covering reads')
+        ax.plot(range(len(dictGenome[key][4])), dictGenome[key][4], color='blue')
+        ax.fill_between(range(len(dictGenome[key][4])), 0, dictGenome[key][4], facecolor='blue')
 
-    ax = fig.add_subplot(212)
-    ax.set_title('Coverage', fontweight='bold')
-    ax.set_xlabel('genome index')
-    ax.set_ylabel('number of covering reads')
-    ax.plot(range(len(dictGenome[key][4])), dictGenome[key][4], color='blue')
-    ax.fill_between(range(len(dictGenome[key][4])), 0, dictGenome[key][4], facecolor='blue')
+        if overall_accept == 1:
+            plt.savefig(pathway + "largePlots/%s_%s.png" % (prefix, key))
+    #    else:
+    #        plt.savefig(pathway + "largePlots/%s.png" % key)
+        plt.close(figure_number)
+        figure_number += 1
 
-    if overall_accept == 1:
-        plt.savefig(pathway + "%s_%s.png" % (prefix, key))
-#    else:
-#        plt.savefig(pathway + "largePlots/%s.png" % key)
-    plt.close(figure_number)
-    figure_number += 1
+
