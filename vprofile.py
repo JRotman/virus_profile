@@ -14,8 +14,9 @@ import argparse
 ap = argparse.ArgumentParser()
 ap.add_argument('virusMegablastSample', help='virusMegablastSample')
 ap.add_argument('readRength', help='')
-ap.add_argument("-d", "--database", type=str, help='Include a specific database to help filter')
+ap.add_argument("-e", "--eukaryotes", type=str, help='Run for eukaryotes using extra reference file')
 ap.add_argument("-t", "--table", action="store_true", help='Output the coverage to a text table')
+ap.add_argument("-v", "--viruses", action="store_true", help="Run for viruses using reference file")
 
 args = ap.parse_args()
 
@@ -63,11 +64,34 @@ k = 0
 # HWI-ST1148:179:C4BAKACXX:5:1101:11944:1949/1    gi|8486122|ref|NC_002016.1|
 # 94.68   94      5       0     7   100     750     843     7e-35    147
 
-if args.database:
-    with open(args.database, 'r') as db:
+if args.eukaryotes:
+    with open(args.eukaryotes, 'r') as db:
         for line in db:
             lineList = line.split(" | ")
             dbDict[lineList[0]] = lineList[1]
+
+virus_dict = {}
+if args.viruses:
+    with open("viruses.fa", 'r') as vdb:
+        currentKey = ""
+        for line in vdb:
+            if line[0] == ">":
+                barcount = 0
+                split = 1
+                for c in range(len(line)):
+                    if barcount == 4:
+                        split = c
+                        barcount = 0
+                    if line[c] == "|":
+                        barcount += 1
+                currentKey = line[1:split]
+                virus_dict[currentKey] = []
+                line = line.strip("\n")
+                virus_dict[currentKey].append(line[split+1:])
+                virus_dict[currentKey].append("")
+            else:
+                line = line.strip("\n")
+                virus_dict[currentKey][1] += line
 
 # get list with genomes
 check = 1
@@ -202,7 +226,7 @@ for key, value in dict2.items():
 #  '95.65', '92', '4', '0', '7', '98', '798', '889', '2e-35', ' 148']
 
 for key, value in fulldict.items():
-    if (args.database and key in dbDict) or not args.database:
+    if (args.eukaryotes and key in dbDict) or not args.eukaryotes:
         lGlobal = []
         rGlobal = []
 
@@ -238,7 +262,7 @@ if args.table:
 
 # iterate through each virus
 for key, value in fulldict.items():
-    if (args.database and key in dbDict) or not args.database:
+    if (args.eukaryotes and key in dbDict) or not args.eukaryotes:
         startsFull = []
         endsFull = []
         startIdx = []
@@ -362,13 +386,25 @@ for key, value in fulldict.items():
                                 maxC = len(cPlots[pl])
                                 index = pl
                                 if args.table:
-                                    tb = open(newfile, "a")
-                                    appendText = key + ", " + str(dictGenome[key][0]) + ", " + str(startIdx[pl][0]) + \
-                                                 ", " + str(startIdx[pl][len(startIdx[pl])-1])
-                                    tb.write(appendText)
-                                    tb.write("\n")
-                                    tb.close()
-
+                                    tb = open(newfile, 'a')
+                                    if args.viruses:
+                                        s = startIdx[pl][0]
+                                        e = startIdx[pl][len(startIdx[pl])-1]
+                                        genomeSection = virus_dict[key][1][s-1:e-1]
+                                        #for nt in startIdx[pl]:
+                                        #    genomeSection += virus_dict[key][1][nt-1]
+                                        appendText = key + ", " + virus_dict[key][0] + ", " + str(dictGenome[key][0])\
+                                                     + ", " + str(s) + ", " + str(e) + "\n" + \
+                                                     genomeSection
+                                        tb.write(appendText)
+                                        tb.write("\n\n")
+                                        tb.close()
+                                    else:
+                                        appendText = key + ", " + str(dictGenome[key][0]) + ", " + str(startIdx[pl][0])\
+                                                     + ", " + str(startIdx[pl][len(startIdx[pl]) - 1])
+                                        tb.write(appendText)
+                                        tb.write("\n\n")
+                                        tb.close()
 
                     fig = plt.figure(figure_number, figsize=(20.48, 10.24))
 
@@ -400,7 +436,7 @@ for key, value in fulldict.items():
                     figure_number += 1
 
         fig = plt.figure(figure_number, figsize=(20.48, 10.24))
-        if args.database:
+        if args.eukaryotes:
             if overall_accept == 1:
                 fig.suptitle('%s_%s_ACCEPT' % (dbDict[key], key), fontsize=16, fontweight='bold')
             else:

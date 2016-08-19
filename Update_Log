@@ -25,3 +25,5 @@ August 17, 2016:
 August 18, 2016:
 	- Added optional argument that sends info on all accepted coverages to a text file
 
+August 19, 2016:
+	- Added option to use virus database to include more info in output
