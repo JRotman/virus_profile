@@ -5,6 +5,8 @@
 import random
 import csv
 import os
+from Bio.Blast import NCBIWWW
+from Bio.Blast import NCBIXML
 import matplotlib
 matplotlib.use('Agg')  # Must be before importing matplotlib.pyplot or pylab!
 import matplotlib.pyplot as plt
@@ -17,12 +19,15 @@ ap.add_argument('readRength', help='')
 ap.add_argument("-e", "--eukaryotes", type=str, help='Run for eukaryotes using extra reference file')
 ap.add_argument("-t", "--table", action="store_true", help='Output the coverage to a text table')
 ap.add_argument("-v", "--viruses", action="store_true", help="Run for viruses using reference file")
+ap.add_argument("-b", "--blast", action="store_true", help="For each hit, run blast on it")
 
 args = ap.parse_args()
 
 pathway = "TestPlots/"
 
 rLength = int(args.readRength)
+
+E_VALUE_THRESH = 0.00000000000000000001
 
 # NR - number of reads
 NR = 20
@@ -255,10 +260,16 @@ for key, value in fulldict.items():
 figure_number = 1
 
 newfile = prefix + ".txt"
+blastfile = prefix + "_blast.txt"
 if args.table:
     tb = open(newfile, "w")
     tb.write(prefix + "\n")
     tb.close()
+if args.blast:
+    cf = open(blastfile, "w")
+    cf.write(prefix + "\n\n")
+    cf.close()
+
 
 # iterate through each virus
 for key, value in fulldict.items():
@@ -386,20 +397,49 @@ for key, value in fulldict.items():
                                 maxC = len(cPlots[pl])
                                 index = pl
                                 if args.table:
-                                    tb = open(newfile, 'a')
                                     if args.viruses:
                                         s = startIdx[pl][0]
                                         e = startIdx[pl][len(startIdx[pl])-1]
                                         genomeSection = virus_dict[key][1][s-1:e-1]
+
+                                        if args.blast:
+                                            result_handle = NCBIWWW.qblast("blastn", "nt", genomeSection)
+                                            save_file = open("my_blast.xml", "w")
+                                            save_file.write(result_handle.read())
+                                            save_file.close()
+                                            result_handle.close()
+                                            result_handle = open("my_blast.xml")
+                                            blast_record = NCBIXML.read(result_handle)
+                                            cf = open(blastfile, 'a')
+                                            cf.write(key + ", " + virus_dict[key][0] + "\n")
+                                            for alignment in blast_record.alignments:
+                                                for hsp in alignment.hsps:
+                                                    if hsp.expect < E_VALUE_THRESH:
+                                                        blastAppend = ""
+                                                        blastAppend += "****Alignment****\n"
+                                                        blastAppend += "sequence: " + alignment.title + "\n"
+                                                        blastAppend += "length: " + str(alignment.length) + "\n"
+                                                        blastAppend += "e value: " + str(hsp.expect) + "\n"
+                                                        #print str(hsp.score) + "\n"
+                                                        #blastAppend += "score: " + str(hsp.score) + "\n"
+                                                        #blastAppend += "identity: " + str(hsp.identities) + "\n"
+                                                        #blastAppend += hsp.query[0:75] + "...\n"
+                                                        #blastAppend += hsp.match[0:75] + "...\n"
+                                                        #blastAppend += hsp.sbjct[0:75] + "...\n"
+                                                        cf.write(blastAppend)
+                                            cf.write("\n\n\n")
+                                            cf.close()
+
                                         #for nt in startIdx[pl]:
                                         #    genomeSection += virus_dict[key][1][nt-1]
                                         appendText = key + ", " + virus_dict[key][0] + ", " + str(dictGenome[key][0])\
-                                                     + ", " + str(s) + ", " + str(e) + "\n" + \
-                                                     genomeSection
+                                                     + ", " + str(s) + ", " + str(e) + "\n" + genomeSection
+                                        tb = open(newfile, 'a')
                                         tb.write(appendText)
                                         tb.write("\n\n")
                                         tb.close()
                                     else:
+                                        tb = open(newfile, 'a')
                                         appendText = key + ", " + str(dictGenome[key][0]) + ", " + str(startIdx[pl][0])\
                                                      + ", " + str(startIdx[pl][len(startIdx[pl]) - 1])
                                         tb.write(appendText)
