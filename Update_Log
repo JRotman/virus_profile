@@ -27,3 +27,6 @@ August 18, 2016:
 
 August 19, 2016:
 	- Added option to use virus database to include more info in output
+	
+October 18, 2016:
+	- Added option to run blast for every hit
